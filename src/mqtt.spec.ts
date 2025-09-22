@@ -17,7 +17,8 @@ test.only('test mqtt', async () => {
   const topicName = Math.random().toString()
   mqtt = await Testing.createElementProxy(Mqtt, {
     uri: process.env.MQTT_URI,
-    topics: [topicName],
+    topics: [topicName]
+  }, {
     runs: [{
       echo: 'hello'
     }]
@@ -31,7 +32,8 @@ test('subscribe', async () => {
   const topicName = Math.random().toString()
   mqtt = await Testing.createElementProxy(Mqtt, {
     uri: process.env.MQTT_URI,
-    topics: [topicName],
+    topics: [topicName]
+  }, {
     runs: [{
       echo: 'hello'
     }]
@@ -72,7 +74,8 @@ test('sub callback', async () => {
   const topicName = Math.random().toString()
   mqtt = await Testing.createElementProxy(Mqtt, {
     uri: process.env.MQTT_URI,
-    topics: [topicName],
+    topics: [topicName]
+  }, {
     runs: [{
       echo: 'hello'
     }]
@@ -102,17 +105,17 @@ test('sub callback', async () => {
     expect(callbacks.id.size).toBe(2)
     expect(callbacks.id.get(id2)).toBeDefined()
     expect(callbacks.id.get(id1)).toBeDefined()
-    expect(callbacks.text.size).toBe(2)
-    expect(callbacks.text.get('c1').size).toBe(1)
-    expect(callbacks.text.get('c2').size).toBe(1)
+    expect(callbacks.buffer.size).toBe(2)
+    expect(callbacks.buffer.get('c1').size).toBe(1)
+    expect(callbacks.buffer.get('c2').size).toBe(1)
 
     await subMqtt1.$.removeCb(id2)
     expect(callbacks.id.size).toBe(1)
     expect(callbacks.id.get(id2)).toBeUndefined()
     expect(callbacks.id.get(id1)).toBeDefined()
-    expect(callbacks.text.size).toBe(2)
-    expect(callbacks.text.get('c1').size).toBe(1)
-    expect(callbacks.text.get('c2').size).toBe(0)
+    expect(callbacks.buffer.size).toBe(2)
+    expect(callbacks.buffer.get('c1').size).toBe(1)
+    expect(callbacks.buffer.get('c2').size).toBe(0)
 
     await mqtt.$.pub('c1')
     await mqtt.$.pub('c2')
@@ -124,9 +127,9 @@ test('sub callback', async () => {
     expect(callbacks.id.size).toBe(0)
     expect(callbacks.id.get(id2)).toBeUndefined()
     expect(callbacks.id.get(id1)).toBeUndefined()
-    expect(callbacks.text.size).toBe(2)
-    expect(callbacks.text.get('c1').size).toBe(0)
-    expect(callbacks.text.get('c2').size).toBe(0)
+    expect(callbacks.buffer.size).toBe(2)
+    expect(callbacks.buffer.get('c1').size).toBe(0)
+    expect(callbacks.buffer.get('c2').size).toBe(0)
   } finally {
     await subMqtt1.$.stop()
   }

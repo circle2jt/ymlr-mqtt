@@ -116,9 +116,9 @@ Example:
         - topic2
       runs:                                 # When a message is received then it will runs them
         - ${ $parentState }                 # - Received data in a topic
-        - ${ $parentState.topicName }       # - Topic name
-        - ${ $parentState.topicData }       # - Received message which is cast to object
-        - ${ $parentState.topicMsg }        # - Received message which is text
+        - ${ $ps.topicName }       # - Topic name
+        - ${ $ps.topicData }       # - Received message which is cast to object
+        - ${ $ps.topicMsg }        # - Received message which is text
 
         - ...
         # Other elements
@@ -138,9 +138,9 @@ Used in global mqtt
               - topic2
             runs:                               # When a message is received then it will runs them
               - ${ $parentState }               # - Received data in a topic
-              - ${ $parentState.topicName }     # - Topic name
-              - ${ $parentState.topicData }     # - Received message which is cast to object
-              - ${ $parentState.topicMsg }      # - Received message which is text
+              - ${ $ps.topicName }     # - Topic name
+              - ${ $ps.topicData }     # - Received message which is cast to object
+              - ${ $ps.topicMsg }      # - Received message which is text
 
               - ...
               # Other elements
@@ -163,9 +163,9 @@ Or reuse by global variable
         - topic2
       runs:                               # When a message is received then it will runs them
         - ${ $parentState }               # - Received data in a topic
-        - ${ $parentState.topicName }     # - Topic name
-        - ${ $parentState.topicData }     # - Received message which is cast to object
-        - ${ $parentState.topicMsg }      # - Received message which is text
+        - ${ $ps.topicName }     # - Topic name
+        - ${ $ps.topicData }     # - Received message which is cast to object
+        - ${ $ps.topicMsg }      # - Received message which is text
 
         - ...
         # Other elements

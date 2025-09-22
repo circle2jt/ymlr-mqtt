@@ -1,11 +1,12 @@
 import assert from 'assert'
-import { connect, type IClientOptions, type IClientPublishOptions, type IClientSubscribeOptions, type IPublishPacket, type MqttClient, type OnMessageCallback } from 'mqtt'
+import { connect, type IClientOptions, type IClientPublishOptions, type IClientSubscribeOptions, type IPublishPacket, type ISubscriptionGrant, type MqttClient, type Packet } from 'mqtt'
 import { type ElementProxy } from 'ymlr/src/components/element-proxy'
 import { type Element } from 'ymlr/src/components/element.interface'
 import { type Group } from 'ymlr/src/components/group/group'
 import { type GroupItemProps, type GroupProps } from 'ymlr/src/components/group/group.props'
 import { type MqttProps } from './mqtt.props'
 
+export type OnMessageBufferCallback = (topic: string, payload: Buffer, packet: IPublishPacket) => any
 /** |**  ymlr-mqtt
   Declare a mqtt connector
   @example
@@ -13,40 +14,38 @@ import { type MqttProps } from './mqtt.props'
     - name: "[mqtt] localhost"
       ymlr-mqtt:
         uri: mqtt://user:pass@mqtt            # Mqtt uri
-        runs:                                 # When a message is received then it will runs them
-          - echo: Mqtt is connected
+      runs:                                 # When a message is received then it will runs them
+        - echo: Mqtt is connected
   ```
   Publish a message to topics
   ```yaml
     - name: "[mqtt] localhost"
       ymlr-mqtt:
         uri: mqtt://user:pass@mqtt            # Mqtt uri
-        runs:                                 # When a message is received then it will runs them
-          - name: Publish a message
-            ymlr-mqtt'pub:
-              topics:
-                - test
-              data:
-                msg: Hello world
+      runs:                                 # When a message is received then it will runs them
+        - name: Publish a message
+          ymlr-mqtt'pub:
+            topics:
+              - test
+            data:
+              msg: Hello world
   ```
 */
 export class Mqtt implements Element {
   readonly proxy!: ElementProxy<this>
   readonly innerRunsProxy!: ElementProxy<Group<GroupProps, GroupItemProps>>
   readonly ignoreEvalProps = ['callbacks', 'resolve', 'promSubscribe']
-
-  client!: MqttClient
-
-  uri?: string
+  uri!: string
   opts?: IClientOptions
 
   callbacks?: {
-    id: Map<string, OnMessageCallback>
-    text?: Map<string, Set<OnMessageCallback>>
+    id: Map<string, OnMessageBufferCallback>
+    buffer?: Map<string, Set<OnMessageBufferCallback>>
   }
 
   private resolve?: (_: any) => void
   private promSubscribe?: Promise<any>
+  client!: MqttClient
 
   get logger() {
     return this.proxy.logger
@@ -67,23 +66,60 @@ export class Mqtt implements Element {
     return await this.promSubscribe
   }
 
-  async pub(topics: string[] | string, data?: any, opts?: IClientPublishOptions) {
+  async pub(topics: string[] | string, data?: any, pubOpts?: IClientPublishOptions) {
     if (!Array.isArray(topics)) topics = [topics]
     if (!topics?.length) return
     let msg = data ?? ''
-    if (typeof msg === 'object') {
+    if (typeof msg === 'object' && !(msg instanceof Buffer)) {
       msg = JSON.stringify(msg)
     }
     this.logger.debug('⇢ [%s]\t%j', topics.join('|'), msg.toString())
-    const proms = topics.map(async topic => {
-      await new Promise((resolve, reject) => this.client.publish(topic, msg.toString(), opts || {}, (err: any) => { err ? reject(err) : resolve(undefined) }))
-    })
+    const proms = topics.map(async topic => await new Promise((resolve, reject) => {
+      if (!pubOpts) {
+        this.client.publish(topic, msg.toString(), (err?: Error, packet?: Packet) => {
+          if (err) { reject(err); return }
+          resolve(packet)
+        })
+      } else {
+        this.client.publish(topic, msg.toString(), pubOpts, (err?: Error, packet?: Packet) => {
+          if (err) { reject(err); return }
+          resolve(packet)
+        })
+      }
+    }))
     if (proms?.length) {
       await Promise.all(proms)
     }
   }
 
-  async sub(topics: string[] | string, cb: OnMessageCallback | undefined, opts?: IClientSubscribeOptions) {
+  async subscribe(topics: string[], subOpts?: IClientSubscribeOptions) {
+    if (!subOpts) {
+      await new Promise((resolve, reject) => {
+        this.client.subscribe(topics, (err: Error, granted: ISubscriptionGrant[]) => {
+          if (err) { reject(err); return }
+          resolve(granted)
+        })
+      })
+    } else {
+      await new Promise((resolve, reject) => {
+        this.client.subscribe(topics, subOpts, (err: Error, granted: ISubscriptionGrant[]) => {
+          if (err) { reject(err); return }
+          resolve(granted)
+        })
+      })
+    }
+  }
+
+  async unsubscribe(topics: string[]) {
+    await new Promise((resolve, reject) => {
+      this.client.unsubscribe(topics, (err: Error, packet: Packet[]) => {
+        if (err) { reject(err); return }
+        resolve(packet)
+      })
+    })
+  }
+
+  private async _sub(topics: string[] | string, cb: OnMessageBufferCallback | undefined, subOpts?: IClientSubscribeOptions) {
     let callbackType = 1
     const callbackIDs = [] as string[]
     if (!Array.isArray(topics)) {
@@ -93,35 +129,30 @@ export class Mqtt implements Element {
     if (topics?.length) {
       this.logger.debug(`Subscribed "${topics}" in "${this.uri}"`)
       if (topics.length) {
-        await new Promise((resolve, reject) => {
-          if (!opts) {
-            this.client.subscribe(topics, (err) => { !err ? resolve(undefined) : reject(err) })
-          } else {
-            this.client.subscribe(topics, opts, (err) => { !err ? resolve(undefined) : reject(err) })
-          }
-        })
+        await this.subscribe(topics, subOpts)
       }
       if (cb) {
         if (!this.callbacks) {
           this.callbacks = {
             id: new Map(),
-            text: undefined
+            buffer: undefined
           }
         }
-        if (!this.callbacks?.text) {
-          this.callbacks.text = new Map()
+        if (!this.callbacks?.buffer) {
+          this.callbacks.buffer = new Map()
           // eslint-disable-next-line @typescript-eslint/no-misused-promises
-          this.client.on('message', this.onMessage.bind(this))
+          this.client.on('message', this.onMessageBuffer.bind(this))
         }
-        const cbChannels = this.callbacks.text as Map<string, Set<any>>
+        const cbTopics = this.callbacks.buffer as Map<string, Set<any>>
+        assert(cbTopics, 'Topic type is not correct')
         const id: Map<string, any> = this.callbacks.id
         const rd = Math.random().toString()
         topics.forEach((topic, i) => {
-          if (!cbChannels.has(topic)) cbChannels.set(topic, new Set())
+          if (!cbTopics.has(topic)) cbTopics.set(topic, new Set())
 
-          const callbackID = `${topic}:${i}:${rd}`
+          const callbackID = `buffer:${topic}:${i}:${rd}`
           id.set(callbackID, cb)
-          cbChannels.get(topic)?.add(id.get(callbackID))
+          cbTopics.get(topic)?.add(id.get(callbackID))
           callbackIDs.push(callbackID)
         })
 
@@ -135,30 +166,26 @@ export class Mqtt implements Element {
     return callbackType === 1 ? callbackIDs : callbackIDs[0]
   }
 
-  async onMessage(topic: string, payload: Buffer, packet: IPublishPacket) {
-    if (!this.callbacks) return
-    const callbacks = this.callbacks.text?.get(topic) as Set<OnMessageCallback>
-    if (!callbacks?.size) return
-    this.logger.debug('⇠ [%s]\t%s', topic, payload)
-    // eslint-disable-next-line array-callback-return, @typescript-eslint/no-confusing-void-expression
-    await Promise.all([...callbacks].map(cb => cb(topic, payload, packet)))
+  async sub(topic: string, cb: OnMessageBufferCallback | undefined,): Promise<string>
+  async sub(topics: string[], cb: OnMessageBufferCallback | undefined): Promise<string[]>
+  async sub(topics: string[] | string, cb: OnMessageBufferCallback | undefined) {
+    return await this._sub(topics, cb)
   }
 
-  async unsub(topics: string[], opts?: IClientSubscribeOptions, isRemoveCallback = true) {
+  async unsub(topics: string[] | string, isRemoveCallback = true) {
     if (typeof topics === 'string') {
       topics = [topics]
     }
     if (!topics.length) return
     this.logger.debug(`Subscribed "${topics}" in "${this.uri}"`)
-    await new Promise((resolve, reject) => {
-      this.client.unsubscribe(topics, opts, (err) => { !err ? resolve(undefined) : reject(err) })
-    })
+    await this.unsubscribe(topics)
     if (isRemoveCallback) {
       topics.forEach(topic => {
         Object.keys(this.callbacks?.id || {})
           .filter(uuid => uuid.includes(`:${topic}:`))
           .forEach(uuid => this.callbacks?.id.delete(uuid))
-        this.callbacks?.text?.delete(topic)
+        this.callbacks?.buffer?.delete(topic)
+        this.callbacks?.buffer?.delete(topic)
       })
     }
   }
@@ -170,10 +197,11 @@ export class Mqtt implements Element {
     [...(this.callbacks?.id.keys() || [])]
       .filter((uuid: string) => uuids.includes(uuid))
       .forEach((uuid: string) => {
-        const [channel] = uuid.split(':')
+        const [type, topic] = uuid.split(':')
         const cb = this.callbacks?.id.get(uuid)
         if (cb) {
-          const ch = this.callbacks?.text?.get(channel)
+          // @ts-expect-error system generate is always passed
+          const ch = this.callbacks?.[type]?.get(topic)
           ch?.delete(cb)
         }
         this.callbacks?.id.delete(uuid)
@@ -186,16 +214,32 @@ export class Mqtt implements Element {
     await new Promise((resolve, reject) => {
       this.client.on('connect', resolve).on('error', reject)
     })
-    const rs = await this.innerRunsProxy.exec(parentState)
+    const rs = await this.innerRunsProxy.exec({
+      ...parentState,
+      mqtt: this.client
+    })
     return rs
   }
 
   async stop() {
-    await new Promise((resolve, reject) => this.client.end(false, {}, (err) => { !err ? resolve(undefined) : reject(err) }))
+    await new Promise((resolve, reject) => {
+      this.client.end(true, (err?: Error) => {
+        if (err) { reject(err); return }
+        resolve(undefined)
+      })
+    })
     if (this.resolve) this.resolve(undefined)
   }
 
   async dispose() {
     await this.stop()
+  }
+
+  private async onMessageBuffer(topic: string, message: Buffer, iPublishPacket: IPublishPacket) {
+    if (!this.callbacks) return
+    const callbacks = this.callbacks.buffer?.get(topic.toString()) as Set<OnMessageBufferCallback>
+    if (!callbacks?.size) return
+    this.logger.debug('⇠ [%s]\t%s', topic, message)
+    await Promise.all([...callbacks].map(cb => cb(topic, message, iPublishPacket)))
   }
 }

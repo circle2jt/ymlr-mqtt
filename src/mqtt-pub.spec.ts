@@ -26,9 +26,9 @@ test('publish a message', async () => {
     data: 'hello world'
   })
   await pub.exec()
+  await sleep(500)
   await pub.dispose()
   await mqtt.$.stop()
-  await sleep(500)
   expect(Testing.vars.topic).toBe(topicName)
   expect(Testing.vars.data).toBe('hello world')
 })
@@ -39,7 +39,8 @@ test('publish a message - used in ymlr-mqtt', async () => {
     say: 'hello world'
   }
   const mqtt: ElementProxy<Mqtt> = await Testing.createElementProxy<Mqtt>(Mqtt, {
-    uri: process.env.MQTT_URI,
+    uri: process.env.MQTT_URI
+  }, {
     runs: [
       {
         'ymlr-mqtt\'pub': {
@@ -58,8 +59,8 @@ test('publish a message - used in ymlr-mqtt', async () => {
     Testing.vars.data = buf.toString()
   })
   await mqtt.exec()
-  await sub.$.stop()
   await sleep(500)
+  await sub.$.stop()
   expect(Testing.vars.topic).toBe(topicName)
   expect(Testing.vars.data).toBe(JSON.stringify(data))
   await mqtt.$.stop()
@@ -86,8 +87,8 @@ test('publish a message - used the global mqtt', async () => {
   })
   await mqttPub.exec()
   await mqttPub.dispose()
-  await mqtt.$.stop()
   await sleep(500)
+  await mqtt.$.stop()
   expect(Testing.vars.topic).toBe(topicName)
   expect(Testing.vars.data).toBe(JSON.stringify(data))
 })

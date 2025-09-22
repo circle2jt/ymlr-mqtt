@@ -15,13 +15,14 @@ test('Subscribe a topic in mqtt\'sub', async () => {
   }
   const mqttSub = await Testing.createElementProxy(MqttSub, {
     uri: process.env.MQTT_URI,
-    topic: topicName,
+    topic: topicName
+  }, {
     runs: [
       {
         vars: {
-          topic: '${ $parentState.topicName }',
-          data: '${ $parentState.topicData }',
-          msg: '${ $parentState.topicMsg }'
+          topic: '${ $ps.topicName }',
+          data: '${ $ps.topicData }',
+          msg: '${ $ps.topicMsg }'
         }
       },
       {
@@ -54,13 +55,14 @@ test('Use the mqtt to subscribe a topic in mqtt\'sub', async () => {
   }
   const mqttSub = await Testing.createElementProxy(MqttSub, {
     mqtt,
-    topic: topicName,
+    topic: topicName
+  }, {
     runs: [
       {
         vars: {
-          topic: '${ $parentState.topicName }',
-          data: '${ $parentState.topicData }',
-          msg: '${ $parentState.topicMsg }'
+          topic: '${ $ps.topicName }',
+          data: '${ $ps.topicData }',
+          msg: '${ $ps.topicMsg }'
         }
       },
       {

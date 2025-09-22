@@ -1,7 +1,7 @@
 {
   "name": "ymlr-mqtt",
-  "version": "1.2.1",
-  "description": "Pub/sub MQTT channels into ymlr platform",
+  "version": "1.2.0",
+  "description": "Pub/sub MQTT topics into ymlr platform",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "files": [
@@ -22,8 +22,8 @@
     "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.0",
-    "typescript": "^5.2.2",
-    "ymlr": "^1.2.3"
+    "typescript": "^4.8.4",
+    "ymlr": "^1.4.1-alpha.2"
   },
   "keywords": [
     "mqtt",
@@ -31,13 +31,13 @@
     "ymlr plugin"
   ],
   "scripts": {
-    "v:next": "yarn doc && node node_modules/ymlr -e preid=alpha -e VERSIONNAME=prerelease -- ./scripts/up-version.yaml",
-    "v:patch": "yarn doc && node node_modules/ymlr -e preid=latest -e VERSIONNAME=patch -- ./scripts/up-version.yaml",
+    "v:next": "yarn ci:test && yarn doc && node node_modules/ymlr -e preid=alpha -e VERSIONNAME=prerelease -- ./scripts/up-version.yaml",
+    "v:patch": "yarn ci:test && yarn doc && node node_modules/ymlr -e preid=latest -e VERSIONNAME=patch -- ./scripts/up-version.yaml",
     "clean": "rm -rf dist",
     "doc": "node node_modules/ymlr ./scripts/doc.yaml",
     "start": "node --require ts-node/register node_modules/ymlr",
     "dev": "nodemon --require ts-node/register --inspect-brk node_modules/ymlr",
-    "test": "node --trace-warnings --expose-gc --inspect node_modules/jest/bin/jest --config=.jest/config.js --runInBand",
+    "test": "node --trace-warnings --expose-gc --inspect-brk node_modules/jest/bin/jest --config=.jest/dev.config.js --runInBand",
     "lint": "eslint --ext .ts --fix ./src",
     "ci:prebuild": "yarn clean",
     "ci:build": "yarn ci:prebuild && tsc --project tsconfig.build.json && node bin/tsconfig && yarn ci:postbuild",

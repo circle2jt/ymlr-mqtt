@@ -78,21 +78,20 @@ export class MqttPub implements Element {
 
   async exec(parentState: any) {
     assert(this.topics.length > 0)
-    let mqtt = this.mqtt
-    if (!mqtt) {
+    if (!this.mqtt) {
       if (this.uri) {
-        mqtt = this.mqtt = await this.proxy.scene.newElementProxy(Mqtt, {
+        this.mqtt = await this.proxy.scene.newElementProxy(Mqtt, {
           uri: this.uri,
           opts: this.opts
         })
-        mqtt.logger = this.proxy.logger
+        this.mqtt.logger = this.proxy.logger
         await this.mqtt.exec(parentState)
       } else {
-        mqtt = this.proxy.getParentByClassName<Mqtt>(Mqtt)
+        this.mqtt = this.proxy.getParentByClassName<Mqtt>(Mqtt)
       }
     }
-    assert(mqtt, '"uri" is required OR "ymlr-mqtt\'pub" only be used in "ymlr-mqtt"')
-    await mqtt.$.pub(this.topics, this.data, this.pubOpts)
+    assert(this.mqtt, '"uri" is required OR "ymlr-mqtt\'pub" only be used in "ymlr-mqtt"')
+    await this.mqtt.$.pub(this.topics, this.data, this.pubOpts)
     return this.data
   }
 

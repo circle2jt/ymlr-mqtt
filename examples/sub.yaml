@@ -6,5 +6,5 @@
     uri: mqtt://mqtt:1883
     topics: test
     runs:
-      - echo: ${ $parentState.topicName }
-      - echo: ${ $parentState.topicMsg }
+      - echo: ${ $ps.topicName }
+      - echo: ${ $ps.topicMsg }
