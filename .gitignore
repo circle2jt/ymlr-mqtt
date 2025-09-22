@@ -107,3 +107,4 @@ dist
 .pnpm-store
 
 test-local/
+.jest/env.js

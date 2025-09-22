@@ -24,21 +24,21 @@ Example:
   - name: "[mqtt] localhost"
     ymlr-mqtt:
       uri: mqtt://user:pass@mqtt            # Mqtt uri
-      runs:                                 # When a message is received then it will runs them
-        - echo: Mqtt is connected
+    runs:                                 # When a message is received then it will runs them
+      - echo: Mqtt is connected
 ```
 Publish a message to topics
 ```yaml
   - name: "[mqtt] localhost"
     ymlr-mqtt:
       uri: mqtt://user:pass@mqtt            # Mqtt uri
-      runs:                                 # When a message is received then it will runs them
-        - name: Publish a message
-          ymlr-mqtt'pub:
-            topics:
-              - test
-            data:
-              msg: Hello world
+    runs:                                 # When a message is received then it will runs them
+      - name: Publish a message
+        ymlr-mqtt'pub:
+          topics:
+            - test
+          data:
+            msg: Hello world
 ```  
 
 
@@ -114,14 +114,14 @@ Example:
       topics:                               # topics which is subscribed
         - topic1
         - topic2
-      runs:                                 # When a message is received then it will runs them
-        - ${ $parentState }                 # - Received data in a topic
-        - ${ $ps.topicName }       # - Topic name
-        - ${ $ps.topicData }       # - Received message which is cast to object
-        - ${ $ps.topicMsg }        # - Received message which is text
+    runs:                                 # When a message is received then it will runs them
+      - ${ $parentState }                 # - Received data in a topic
+      - ${ $ps.topicName }       # - Topic name
+      - ${ $ps.topicData }       # - Received message which is cast to object
+      - ${ $ps.topicMsg }        # - Received message which is text
 
-        - ...
-        # Other elements
+      - ...
+      # Other elements
 ```
 
 Used in global mqtt
@@ -129,21 +129,21 @@ Used in global mqtt
   - name: Global MQTT
     ymlr-mqtt:
       uri: mqtt://user:pass@mqtt
-      runs:
-        - name: "[mqtt] localhost"
-          ymlr-mqtt'sub:
-            topic: topic1
-            topics:                             # topics which is subscribed
-              - topic1
-              - topic2
-            runs:                               # When a message is received then it will runs them
-              - ${ $parentState }               # - Received data in a topic
-              - ${ $ps.topicName }     # - Topic name
-              - ${ $ps.topicData }     # - Received message which is cast to object
-              - ${ $ps.topicMsg }      # - Received message which is text
+    runs:
+      - name: "[mqtt] localhost"
+        ymlr-mqtt'sub:
+          topic: topic1
+          topics:                             # topics which is subscribed
+            - topic1
+            - topic2
+        runs:                               # When a message is received then it will runs them
+          - ${ $parentState }               # - Received data in a topic
+          - ${ $ps.topicName }     # - Topic name
+          - ${ $ps.topicData }     # - Received message which is cast to object
+          - ${ $ps.topicMsg }      # - Received message which is text
 
-              - ...
-              # Other elements
+          - ...
+          # Other elements
 ```
 
 Or reuse by global variable
@@ -161,16 +161,14 @@ Or reuse by global variable
       topics:                             # topics which is subscribed
         - topic1
         - topic2
-      runs:                               # When a message is received then it will runs them
-        - ${ $parentState }               # - Received data in a topic
-        - ${ $ps.topicName }     # - Topic name
-        - ${ $ps.topicData }     # - Received message which is cast to object
-        - ${ $ps.topicMsg }      # - Received message which is text
+    runs:                               # When a message is received then it will runs them
+      - ${ $parentState }               # - Received data in a topic
+      - ${ $ps.topicName }     # - Topic name
+      - ${ $ps.topicData }     # - Received message which is cast to object
+      - ${ $ps.topicMsg }      # - Received message which is text
 
-        - ...
-        # Other elements
-
-        - stop:                           # - Stop subscribing
+      - ...
+      # Other elements
 ```  
 
 
