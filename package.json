@@ -1,6 +1,6 @@
 {
   "name": "ymlr-mqtt",
-  "version": "1.2.1-alpha.0",
+  "version": "1.4.0-alpha.1",
   "description": "Pub/sub MQTT topics into ymlr platform",
   "main": "src/index.js",
   "types": "src/index.d.ts",
